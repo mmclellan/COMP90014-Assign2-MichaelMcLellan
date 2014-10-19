@@ -3,9 +3,9 @@ title: "COMP90014 - Assignment2"
 author: "Michael McLellan - 665968"
 date: "Due Date; 17 October 2014"
 output:
-  word_document: default
   pdf_document:
     fig_caption: yes
+  word_document: default
 ---
 
 ```{r global-options, include=F}
@@ -15,14 +15,18 @@ library(edgeR)
 library(knitr)
 ```
 
+All code and data can be accessed from
+
+https://github.com/mmclellan/COMP90014-Assign2-MichaelMcLellan
+
 ## Task 1 - Differential gene expression analysis 
-For the following analyses the R package edgeR was used to find differential expressed genes between a male and female group with each group containing twenty replicants. Initial set up for the experiment is to load the data into R Studio and look at the data. The data is an RNA-Seq data set containing only the counts with the row names as the gene ids and the column names as sample ids. 
+For the following analyses the R package edgeR was used to find differential gene expressions between a male and female group with each group containing twenty replicants. Initial set up for the experiment is to load the data into R Studio and look at the data. 
 ```{r, eval=FALSE}
 #Load in read in counts table.
 alldata = read.table("assignment2data_fullcounts.tsv", header=TRUE, sep="\t")
 ```
 
-A good place to start for an analyses is too look at the data. In this analysis we look at the dimension of the data, showing how many genes and individuals we are working with. The output shows that there are 40 individuals and 44061 genes in the data set as we expected. The data is also in the correct format for edgeR.
+A good place to start for an analysis is too look at the data. In this analysis we look at the dimension of the data, showing how many genes and individuals we are working with. The output shows that there are 40 individuals and 44061 genes in the data set as we expected. We can see the data is also in the correct format for edgeR.
 ```{r, results='asis'}
 #Look at dimension, row and column names
 dim(alldata)
@@ -48,7 +52,7 @@ geneInfo = filtered[,41:44]
 
 Now we start to use edgeR to perform a differential expression analysis on the data set. 
 
-We are required to provide edgeR with the information telling which of the data belongs to each group. The standard way to do this is to use a design matrix, but as this is a simple two case comparison we only need to provide edgeR with a vector. The 'ismale' vector, 0's represent the columns belonging to the female group while 1's being to the male group. Next we package all the counts into a list object called DGEList for edgeR. The DGEList function converts the count matrix into an edgeR object. The counts and information can still be accessed with in the DGE object. 
+We are required to provide edgeR with the information telling which of the data belongs to each group. The standard way to do this is to use a design matrix, but as this is a simple two case comparison we only need to provide edgeR with a vector. In the 'ismale' vector, 0's represent the columns belonging to the female group while 1's being to the male group. Next we package all the counts into a list object called DGEList for edgeR. The DGEList function converts the count matrix into an edgeR object. The counts and information can still be accessed with in the DGE object. 
 ```{r, eval=FALSE}
 #Vector distinguishing which group the twe belong too. 
 ismale = c(rep(0,20), rep(1,20))
@@ -63,12 +67,12 @@ To take into account variation as a result of the different experiments from the
 dge = calcNormFactors(dge)
 ```
 
-A good step in an analysis is to visualise the data. We can use a multi-dimensional scaling (MDS) plot to visualise the level of similarity of the two cases in the data. The basic version of a MDS plot is known as Principle coordinates analysis. It can clearly be seen that there is clustering between the male and female groups. 
+A good step in an analysis is to visualise the data. We can use a multi-dimensional scaling (MDS) plot to visualise the level of similarity of the two cases in the data. The basic version of a MDS plot is known as Principle coordinates analysis. It can clearly be seen that there is clustering between the male and female samples. 
 ```{r, fig.cap="The multidimensional scaling plot is a way to visualise the similarity between the individuals in the data set. We can clearly see the male and females clustering into seperate groups. ", message=FALSE,}
 plotMDS(dge, col=c( rep("red",20), rep("blue",20)))
 ```
 
-Next we model the variance of the data. Using edgeR we fit the negative binomial model to find the common dispersion for the data, so each gene has the same value for the dispersion. Next the per-gene estimates of variance are found using the "estimateTagewiseDisp" function. The estimates are computed using an empirical Bayes method on weighted conditional maximum likelihood. The model uses the common dispersion as a prior when calculating the negative binomial dispersion preventing over fitting to the data. The BCV plot (biological coefficient of variance) plots the biological coefficient of variation (BCV) against gene abundance showing the common the and tag wise BCV estimates. 
+Next we model the variance of the data. Using edgeR we fit the negative binomial model to find the common dispersion for the data, so each gene has the same value for the dispersion. Next the per-gene estimates of variance are found using the `estimateTagewiseDisp()` function. The estimates are computed using an empirical Bayes method on weighted conditional maximum likelihood. The model uses the common dispersion as a prior when calculating the negative binomial dispersion preventing over fitting to the data. The BCV plot (biological coefficient of variance) plots the biological coefficient of variation (BCV) against gene abundance showing the common and tag wise BCV estimates. 
 ```{r, fig.cap="The BCV plot shows the common dispersion as the red line and the tagwise estimates as the black dots."}
 #Estimate the common and tag wise dispersion, and view the relationship in a BCV plot
 dge = estimateCommonDisp(dge)
@@ -77,7 +81,7 @@ dge = estimateTagwiseDisp(dge)
 plotBCV(dge)
 ```
 
-By plotting the mean-variance relationship we are able to see how well the data fits to the estimate dispersion parameters. The grey dots are the raw variance of the counts, blue dots are the tag wise dispersion and the solid blue line is the variance using the common dispersion. The straight line is the mean variance relationship of a Poisson distribution. The plot models the mean variance relationship of the estimated dispersion. The relationship is not linear but is probably quadratic.
+By plotting the mean-variance relationship we are able to see how well the data fits to the estimate dispersion parameters. The grey dots are the raw variance of the counts, blue dots are the tag wise dispersion and the solid blue line is the variance using the common dispersion. The straight line is the mean variance relationship of a Poisson distribution. The plot models the mean variance relationship of the estimated dispersion.
 ```{r, fig.cap='The grey dots are the raw variance of the counts, blue dots are the tag wise dispersions and the solid blue line is the variance using the common dispersion.'}
 plotMeanVar(dge, show.raw.vars=TRUE, show.tagwise.vars=TRUE, 
             show.binned.common.disp.vars=FALSE, show.ave.raw.vars=FALSE, 
@@ -85,14 +89,16 @@ plotMeanVar(dge, show.raw.vars=TRUE, show.tagwise.vars=TRUE,
             xlab="Mean Expression (Log10 Scale)", ylab = "Variance (Log10 Scale)")
 ```
 
-To test for DGE we perform pair-wise tests between the male and female groups. The exact test looks for statistically significant differences between the means of the negative binomial distribution fitted to the data.The results are stored in an edgeR data class 'DGEExact' with each row containing the gene with its logFC value, logCPM and P Value from the test.
+To test for DGE we perform pair-wise tests between the male and female groups. The exact test looks for statistically significant differences between the means of the negative binomial distribution fitted to the data. For this test the null hypothesis is that there is no differential expression, with Type 1 error being we declare there is differential expression when there is not and type 2 errors being we fail to detect the differential expression.  
+
+The results are stored in an edgeR data class 'DGEExact' with each row containing the gene with its logFC value, logCPM and P Value from the test. For this test the null hypothesis is that there is no differential expression. The exact test is looking for 
 ```{r,eval=FALSE}
 #Perform an exact test on the data and view the structure of the results
 results = exactTest(dge)
 str(results)
 ```
 
-We can view the top ten tags from the results, IE the top ten differential expressed genes between the two groups. We can then refer back to the data frame containing the information for each gene and find the information for each differential expressed gene. 
+We can view the top ten hits from the results using the `topTags()`. We can then refer back to the data frame containing the information for each gene and find the information for each differential expressed gene. 
 ```{r}
 #Top ten differentially expressed genes show with gene information
 topGI = merge(geneInfo[rownames(topTen),], topTags(results, n=10), by=0, sort=FALSE)
@@ -100,7 +106,7 @@ del = c("Row.names", "start_position", "FDR") #Columns not needed in output
 topGI[,!(colnames(topGI) %in% del), drop=FALSE]
 ```
 
-To view the bottom ten results we can get the full list from the `topTags()` command and then use the tail function in R to select the bottom ten rows of the data frame. For this the bottom ten results were interpreted to be the the bottom of the list of genes after being sorted. 
+To view the bottom ten results we can get the full list from the `topTags()` command and then use the `tail()` function in R to select the bottom ten rows of the data frame. For this the bottom ten results were interpreted to be the the bottom of the full list of genes. 
 ```{r}
 #Bottom 10 genes from the data set after being sorted by the topTags function. 
 low = topTags(results, n=nrow(results$table))$table
@@ -108,13 +114,13 @@ low_GI = merge(geneInfo[rownames(low),], tail(low, n=10), by=0, sort=FALSE)
 low_GI[,!(colnames(low_GI) %in% del), drop=FALSE]
 ```
 
-The decideTestsDGE() function will implement multiple testing procedures to determine whether each log-fold change in the results matrix should be considered significantly different from zero. The summary output shows the number of genes whose fold change is up or down. 
+The `decideTestsDGE()` function will implement multiple testing procedures to determine whether a series of differential expression statistics are up, down or not significant. The functions determines if each log-fold change in the results matrix should be considered significantly different from zero. The summary output shows the number of genes whose fold change is up or down.
 ```{r}
 de = decideTestsDGE(results)
 summary(de)
 ```
 
-For visualisation a heatmap is a common way to view expression data. A heatmap is a two-dimensional grid with different colours representing expression values. For this case we will use the top twenty differential expressed genes in the heatmap. The heatmap shows clear areas of different levels of expression. 
+For visualisation a heatmap is a common way to view expression data. A heatmap is a two-dimensional grid with different colours representing expression values. For this case we will use the top twenty differential expressed genes in the heatmap. The heatmap shows clear clusters of differential expressed genes. 
 ```{r, fig.cap='Heat map for the top 20 differentially expressed genes'}
 #Produce heat map
 topgenes = rownames(topTags(results, n=20))
@@ -124,7 +130,7 @@ redtogreen = colorRampPalette(c("red", "yellow", "green"))(n=299)
 heatmap(topgene.log.expression, col=redtogreen)
 ```
 
-A second common plot is a histogram plot showing the distribution of P-values. 
+A second common plot is a histogram plot showing the distribution of P-values. We are expecting to see the distribution to be largely uniform. 
 ```{r, fig.cap='Histogram of Pvalues from the results table'}
 hist(results$table$PValue, breaks=150)
 ```
@@ -166,7 +172,7 @@ xistResult$logFC
 ```
 
 ### Task 2 - DGE analysis of subsampled dataset 
-For the second task a differential expression analysis on a sub sample of the data set. The sub sample contained the same number of replicants and genes but had different number of counts. The same workflow was followed as task one.
+For the second task a differential expression analysis on a sub sample of the data set. The sub sample represents a lower coverage RNA-seq experiment, with all the same genes and replicants but with fewer counts. The same workflow was followed as task one. 
 
 The sub sample data set was loaded, genes with zero counts removed as well as splitting the data into a data frame of counts and data frame of gene information. For this data set a total of 29458 genes were removed. 
 ```{r}
@@ -194,7 +200,7 @@ plotMDS(sub.dge, col=c( rep("red",20), rep("blue",20) ))
 
 ```
 
-The common and tag wise dispersion are estimated for the data set and the are viewed using the `plotBCV()` function. An exact test was used to find 
+The common and tag wise dispersion are estimated for the data set and the are viewed using the `plotBCV()` function. 
 ```{r, fig.cap='BCV plot for the sub samlped data.'}
 #fit models
 sub.dge = estimateCommonDisp(sub.dge)
@@ -202,7 +208,7 @@ sub.dge = estimateTagwiseDisp(sub.dge)
 plotBCV(sub.dge)
 ```
 
-To test for DGE  in the sum sampled data set the exact test was used to look for statistically significant differences between the means of the negative binomial distribution fitted to the data.
+To test for DGE in the lower coverage data set, the exact test was used to look for statistically significant differences between the means of the negative binomial distribution fitted to the data.
 ```{r, eval=FALSE}
 sub.results = exactTest(sub.dge)
 ```
@@ -216,7 +222,7 @@ plotMeanVar(sub.dge, show.raw.vars=TRUE, show.tagwise.vars=TRUE,
             xlab="Mean Expression (Log10 Scale)", ylab = "Variance (Log10 Scale)")
 ```
 
-Using the same methods as Task 1 we are able to find the to ten differential expressed genes as well as the bottom 10 genes. Using the `decideTestsDGE()` function again we can view the number of genes edgeR have significantly different fold changes. 
+Using the same methods as Task 1 we are able to find the top ten differential expressed genes as well as the bottom 10 genes. Using the `decideTestsDGE()` function again we can view the number of genes that have significantly different fold changes. 
 ```{r}
 #Sub top ten hits
 sub.topGI = merge(sub.geneInfo[rownames(sub.topTen),], topTags(sub.results, n=10), by=0, sort=FALSE)
@@ -287,9 +293,9 @@ round(sub.xistResult$logFC,digits=4)
 ```
 
 ### Task 3: Randomised sub sample set
-The third task is to perform a sanity check and to be sure that our analysis does not contain any obvious errors or bias. As there is no reason to suspect significant differential expression between two randomly assigned groups we group individuals at random as opposed to their gender. 
+The third task is to perform a sanity check and to be sure that our analysis does not contain any obvious errors or bias. As there is no reason to suspect significant differential expression between two randomly assigned groups we group individuals at random as opposed to their gender. Here we should see no differential expression between the two groups if our analysis is correct.
 
-To assign the groups randomly we use R to create a vector or random 0's and 1's. The set seed function ensures that we get the same randomisation each time the analysis is carried out. 
+To assign the groups randomly we use R to create a vector or random 0's and 1's. The set seed function ensures that the results here are reproducable. 
 ```{r, eval=FALSE}
 #create vector of random 0 and 1
 seed = 1234
@@ -300,7 +306,7 @@ randomgroup = sample(c(0,1), 40, replace=TRUE)
 randomgroup
 ```
 
-The same analysis is performed as task 2 on the data. The only difference is that we are now using the randomly assigned groups. 
+The same analysis is performed as Task 2 on the data. The only difference is that we are now using the randomly assigned groups. 
 ```{r,eval=FALSE}
 #create dge object
 rand.dge = DGEList(sub.expression, group=randomgroup)
@@ -327,7 +333,7 @@ rand.results = exactTest(rand.dge)
 plotMeanVar(rand.dge, show.raw.vars=TRUE, show.tagwise.vars=TRUE, show.binned.common.disp.vars=FALSE, show.ave.raw.vars=FALSE, dispersion.method="qcml", NBline=TRUE, nbins=100, pch=16 , xlab="Mean Expression (Log10 Scale)", ylab = "Variance (Log10 Scale)")
 ```
 
-As the groups were assigned at random there are still some differential expressed genes but not as many as found in Task 2. 
+As the groups were assigned at random there are still some differential expressed genes. 
 ```{r}
 #get top ten hits
 rand.topGI = merge(sub.geneInfo[rownames(rand.topTen),], topTags(rand.results, n=10), by=0, sort=FALSE)
@@ -354,7 +360,7 @@ rand.topgene.log.expression <- rand.log.dge[rand.topgenes,]
 heatmap(rand.topgene.log.expression)
 ```
 
-There are still peaks in the histogram by they are viewer. Over all the histogram is smaller and looks more uniform.
+There are still peaks in the histogram but there are viewer. Over all the histogram is smaller and looks more uniform.
 ```{r, fig.cap='Histogram for the randomly assigned groups.'}
 #histogram
 hist(rand.results$table$PValue, breaks=150)
@@ -402,25 +408,24 @@ rand.xist.Result$logFC
 The purpose of this analysis was to find genes in our data set that were differential expressed between the two groups. As expected we found a number of differential expressed genes that are located on the Y chromosome. 
 
 #Comparison of Task 1 and 2
-The first task involved using high-depth RNA-seq data and the second involved the same groups but lower depth. The lower depth meant meant less statistical power for detecting DE genes. The first process of filtering counts we removed an extra 10,015 genes from the analysis. 
+The first task involved using high-depth RNA-seq data and the second involved the same groups but lower depth. The lower depth meant meant less statistical power for detecting differential expression. The first process of filtering counts we removed an extra 10,015 genes from the analysis, significantly reducing statistical power. 
 
-Comparing the two MDS for the higher and lower depth RNA-seq data we can see clearly in both the clustering between the male and female groups. So reduced depth does not effect how similar the similarity between the data. 
+Comparing the two MDS plots for the higher and lower depth RNA-seq data we can clearly see in both the clustering between the male and female groups. So reduced depth does not effect the similarity between the samples. 
 
 The dispersion estimates for the two data sets are very similar. Looking at the BCV plots for the two data sets they appear to be very similar the major difference being the number of tag wise estimates (as more genes were removed). Looking at the raw value for the common dispersion they are also very close. The common dispersion for high depth was `r dge$common.disperson` and for lower depth `r sub.dge$commondispersion`. 
 
 As expected the genes in the top ten differential expressed list for both data sets are slightly different. As the counts are different slightly different results are given but common genes are seen in both lists. The same applies to the lowest DE genes. 
 
-Looking at the decideTestsDGE results we can see there are fewer genes that are significantly DE. The higher coverage with more power has found more genes both negatively and positively DE. The heat maps show clear differential expression between the positively and negatively expressed genes in the higher depth compared to the lower depth. This is expected as we have removed genes reducing the power of our experiment. 
+Looking at the `decideTestsDGE()` results we can see there are fewer genes that are significantly DE. The higher coverage with more power has found more genes both negatively and positively DE. The heat maps show clear differential expression between the positively and negatively expressed genes in the higher depth compared to the lower depth. This is expected as we have removed genes reducing the power of our experiment. 
 
 The comparison of histograms show the frequency of P value has reduced, this is again due to reduced number of genes in the lower coverage data set and the lower power of the analysis. Looking at the numerical analysis we are still detecting the same proportion of genes with P Value below 0.05. The log-fold change of the xist gene is also near the same value. 
 
-
 ###Comparison of Task 2 and Task 3
-For Task 3 we performed some sanity checking by randomising the group assignment of the replicants. This in theory should show that there is no differential expressed genes between the two groups, showing us that our first analysis was working and detecting real DE genes. How ever this is random so we still do detect some differential expressed genes. 
+For Task 3 we performed some sanity checking by randomising the group assignment of the replicants. This in theory should show that there is no differential expression between the two groups, proving that our first analysis was working and detecting real differential expression. How ever this is random so we still do detect some genes with differential expression. 
 
 The MDS plot still shows clear similarity between the male and female samples despite being assigned to groups randomly. The random assignments does not change the similarity between the samples. 
 
-The comparison of heat maps clearly show the lack of differential expression between the randomly assigned groups. With no clear clustering of genes everything appears random. With the output of the decideTestsDGE from edgeR there are only three DE genes found compared to 46 from task 2.The smear plot also only shows the few genes that are above or below the 2x fold lines on the graph. 
+The comparison of heat maps clearly show the lack of differential expression between the randomly assigned groups. With no clear clustering of genes, everything appears uniform. With the output of the `decideTestsDGE()` from edgeR there are only three genes with differential expression found compared to 46 from task 2.The smear plot also only shows the few genes that are above or below the 2x fold change lines on the graph. 
 
 As expected we have fewer genes that have a P Value lower then 0.05 as we are not detecting many differential expressed genes. Looking at the difference in log-fold changes in the xist gene between the two tasks. The log-fold change in Task 2 is -9.8, where in Task 3 it is 0.6323 showing the lack of detection of DE in randomly assigned groups. 
 
